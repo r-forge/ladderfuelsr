@@ -1,0 +1,28 @@
+{
+    "type": [
+        2,
+        0,
+        1,
+        2,
+        0,
+        1,
+        0,
+        1,
+        2,
+        2,
+        2
+    ],
+    "data": [
+        "\nR version 4.2.3 (2023-03-15 ucrt) -- \"Shortstop Beagle\"\nCopyright (C) 2023 The R Foundation for Statistical Computing\nPlatform: x86_64-w64-mingw32/x64 (64-bit)\n\nR is free software and comes with ABSOLUTELY NO WARRANTY.\nYou are welcome to redistribute it under certain conditions.\nType 'license()' or 'licence()' for distribution details.\n\nR is a collaborative project with many contributors.\nType 'contributors()' for more information and\n'citation()' on how to cite R or R packages in publications.\n\nType 'demo()' for some demos, 'help()' for on-line help, or\n'help.start()' for an HTML browser interface to help.\nType 'q()' to quit R.\n\n",
+        "> ",
+        "roxygen2::roxygenise()",
+        "\u001B[38;5;232m\u001B[36mℹ\u001B[38;5;232m Loading \u001B[34mLadderFuelsR\u001B[38;5;232m\u001B[39m\n\nRestarting R session...\n\n",
+        "> ",
+        "library(LadderFuelsR)",
+        "> ",
+        "roxygen2::roxygenise()",
+        "\u001B[38;5;232m\u001B[36mℹ\u001B[38;5;232m Loading \u001B[34mLadderFuelsR\u001B[38;5;232m\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_gaps_fbhs')\u0007\u001B[34mget_gaps_fbhs.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_distance')\u0007\u001B[34mget_distance.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_depths')\u0007\u001B[34mget_depths.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_real_fbh')\u0007\u001B[34mget_real_fbh.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_real_depths')\u0007\u001B[34mget_real_depths.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n",
+        "\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_effective_gap')\u0007\u001B[34mget_effective_gap.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_cum_break')\u0007\u001B[34mget_cum_break.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_layers_lad')\u0007\u001B[34mget_layers_lad.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_plots_cumm')\u0007\u001B[34mget_plots_cumm.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_plots_gap_fbh')\u0007\u001B[34mget_plots_gap_fbh.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n",
+        "\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_plots_cbh_LAD')\u0007\u001B[34mget_plots_cbh_LAD.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_renamed0_df')\u0007\u001B[34mget_renamed0_df.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\u001B[38;5;232mWriting \u001B]8;;ide:run:pkgload::dev_help('get_renamed_df')\u0007\u001B[34mget_renamed_df.Rd\u001B[38;5;232m\u001B]8;;\u0007\u001B[39m\n\nRestarting R session...\n\n"
+    ]
+}

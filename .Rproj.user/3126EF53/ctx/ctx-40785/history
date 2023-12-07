@@ -1,0 +1,512 @@
+for (j in seq_along(effdist_cols)) {
+if (j == 1) {
+merged_df1[1, effdist_cols[j]] <- merged_df1[[hcbh_cols[j]]] - 1.5
+} else {
+merged_df1[1, effdist_cols[j]] <- merged_df1[[hdist_cols[j]]] - merged_df1[[hdptf_cols[j - 1]]]
+}
+}
+}
+if (merged_df1$Hcbh1 <= 2.5 && length(hdist_cols) > 0) {
+for (j in seq_along(effdist_cols)) {
+if (merged_df1$Hdist1 == 1.5) {
+merged_df1[1, effdist_cols[j]] <- merged_df1[[hdist_cols[j+1]]] - merged_df1[[hdptf_cols[j]]]
+}
+}
+}
+# If there's only one effdist column, update maxlad_effdist with its value
+if (length(effdist_cols) == 1) {
+merged_df1$maxlad_effdist <- merged_df1[1, effdist_cols]
+} else if (!is.na(matching_index)) {
+merged_df1$maxlad_effdist <- merged_df1[1, effdist_cols[matching_index]]
+}
+if (length(effdist_cols) == 1 && length(hdist_cols) == 1 && merged_df1$Hcbh1 <= 2.5) {
+merged_df1[1, effdist_cols[1]] <- merged_df1[[hdist_cols[1]]] - merged_df1[[hdptf_cols[1]]]
+merged_df1$maxlad_effdist <- merged_df1[[hdist_cols[1]]] - merged_df1[[hdptf_cols[1]]]
+}
+# Remove sub-columns if they exist
+cols_to_remove <- grep("^maxlad_effdist\\.", colnames(merged_df1), value = TRUE)
+merged_df1 <- merged_df1[, !names(merged_df1) %in% cols_to_remove]
+}
+# Remove sub-columns if they exist
+cols_to_remove1 <- grep("^max1", colnames(merged_df1), value = TRUE)
+merged_df1 <- merged_df1[, !names(merged_df1) %in% cols_to_remove1]
+##########################################################################
+all_LAD<-merged_df
+effective_LAD<-merged_df1
+# Return them in a list
+return(list(df1 = all_LAD, df2 = effective_LAD))
+}
+trees_name1 <- as.character(effective_distances$treeID)
+trees_name2 <- factor(unique(trees_name1))
+LAD_metrics1 <- list()
+LAD_metrics2 <- list()
+for (i in levels(trees_name2)) {
+# Filter data for each tree
+tree1 <- LAD_profiles |> dplyr::filter(treeID == i)
+tree2 <- effective_distances |> dplyr::filter(treeID == i)
+# Get LAD metrics for each tree
+LAD_metrics <- get_layers_lad(tree1, tree2)
+LAD_metrics1[[i]] <- LAD_metrics$df1
+LAD_metrics2[[i]] <- LAD_metrics$df2
+}
+all_LAD <- dplyr::bind_rows(LAD_metrics1)
+effective_LAD <- dplyr::bind_rows(LAD_metrics2)
+effective_LAD
+trees_name1 <- as.character(effective_LAD$treeID)
+trees_name2 <- factor(unique(trees_name1))
+# Generate plots for fuels LAD metrics
+plots_trees_LAD <- get_plots_cbh_LAD(LAD_profiles, effective_LAD)
+plots_trees_LAD [[1]]
+plots_trees_LAD [[2]]
+plots_trees_LAD [[3]]
+plots_trees_LAD [[4]]
+plots_trees_LAD [[5]]
+plots_trees_LAD [[6]]
+plots_trees_LAD [[7]]
+plots_trees_LAD [[8]]
+trees_name1 <- as.character(effective_distances$treeID)
+trees_name2 <- factor(unique(trees_name1))
+cum_LAD_metrics_list <- list()
+for (i in levels(trees_name2)) {
+# Filter data for each tree
+tree1 <- LAD_profiles |> dplyr::filter(treeID == i)
+tree2 <- effective_distances |> dplyr::filter(treeID == i)
+# Get cumulative LAD metrics for each tree
+cum_LAD_metrics <- get_cum_break(tree1, tree2)
+cum_LAD_metrics_list[[i]] <- cum_LAD_metrics
+}
+# Combine the individual data frames
+cummulative_LAD <- dplyr::bind_rows(cum_LAD_metrics_list)
+cummulative_LAD
+# Initialize the result data frame
+closest_row <- data.frame()
+df_effective<- effective_distances |> dplyr::filter(treeID == "1_Eglin_zone1_CROWN")
+df_orig<- LAD_profiles |> dplyr::filter(treeID == "1_Eglin_zone1_CROWN")
+tryCatch({
+# Validate input data frames
+stopifnot(is.data.frame(df_orig), is.data.frame(df_effective))
+stopifnot("height" %in% colnames(df_orig), "lad" %in% colnames(df_orig))
+# Remove columns with only NAs from df_effective
+df_effective <- df_effective[, colSums(!is.na(df_effective)) > 0]
+treeID<-"treeID"
+treeID1<-"treeID1"
+print(paste("treeID:", df_effective[[treeID]]))  # Debugging line
+# Add more noise to x-values
+df_orig$height <- jitter(df_orig$height, amount = 1)
+# Calculate the cumulative sum
+df_orig$cumulative_value <- cumsum(df_orig$lad)
+# Fit a segmented regression with automatic breakpoint estimation
+seg.mod <- segmented(lm(cumulative_value ~ height, data = df_orig),
+seg.Z = ~height,
+control = seg.control(fix.npsi = TRUE))
+# Check if breakpoint estimation was successful
+if (is.null(seg.mod$psi) || any(is.na(seg.mod$coef))) {
+# If breakpoint estimation failed, try alternative modeling approach (e.g., polynomial regression)
+poly.mod <- lm(cumulative_value ~ poly(height, degree = 2), data = df_orig)
+breakpoint <- poly.mod$coefficients[3]  # Adjusted to get the appropriate coefficient
+} else {
+# Get the breakpoint value
+breakpoint <- seg.mod$psi["psi1.height", "Est."]
+}
+# Get the index of the value in df$height that is closest to the breakpoint
+index <- which.min(abs(df_orig$height - breakpoint))
+# Handle breakpoints at the boundary
+if (index <= 1 || index >= nrow(df_orig)) {
+warning("Breakpoint at the boundary detected. Consider an alternative modeling approach or data transformation.")
+closest_row <- data.frame(Hcbh_bp = NA, cumlad = NA)
+} else {
+# Subset the row from the data frame that is closest to the breakpoint
+closest_row <- df_orig[index, c("height", "cumulative_value")]
+names(closest_row) <- c("Hcbh_bp", "cumlad")
+}
+}, error = function(e) {
+# Error handling code block
+error_row <- df_orig[is.na(df_orig$cumulative_value), ]
+message("An error occurred in row ", which(is.na(df_orig$cumulative_value)),
+" with treeID '", error_row$treeID, "': ", conditionMessage(e))
+closest_row <- df_effective
+})
+if(length(closest_row) > 0 && all(!is.na(closest_row))) {
+total_lad <- sum(df_orig$lad)
+hcbh_bp <- closest_row[1, grep("^Hcbh_bp$", names(closest_row))]
+below_df1 <- df_orig[df_orig$height <= hcbh_bp, ]
+above_df1 <- df_orig[df_orig$height >= hcbh_bp, ]
+lad_below <- below_df1$lad
+lad_above <- above_df1$lad
+below_percentage <- sum(lad_below) / total_lad * 100
+above_percentage <- sum(lad_above) / total_lad * 100
+# Store the percentages below and above Hcbh_bp
+percentage2 <- data.frame(below_percentage, above_percentage)
+# Create the column name by concatenating Hcbh and Hdepth column names
+names(percentage2) <- c("below_hcbhbp", "above_hcbhbp")
+output_df2<-data.frame(closest_row,percentage2)
+lad_columns <- grep("^Hcbh_bp$", names(output_df2))
+lad_columns1 <- names(output_df2)[lad_columns]
+# Check how many lad_columns in the current row have numeric values
+numeric_count <- sum(sapply(output_df2[1, lad_columns1], function(x) is.numeric(x) & !is.na(x)))
+# Check the specified conditions
+if(!is.na(output_df2$above_hcbhbp[1]) && output_df2$above_hcbhbp[1] > 75 && numeric_count == 1) {
+output_df2$maxlad_Hcbh[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$maxlad_Hdptf[1] <- round(df_effective$max_height[1], 1)
+output_df2$maxlad_Hdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 1)
+output_df2$maxlad_effdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 0)
+output_df2$Hcbh1_Hdptf1[1] <- output_df2$above_hcbhbp[1]
+output_df2$Hcbh1[1] <- output_df2$Hcbh_bp[1]
+output_df2$Hdptf1[1] <- df_effective$max_height[1]
+output_df2$dptf1[1] <- round(df_effective$max_height[1] - output_df2$Hcbh_bp[1], 0)
+output_df2$Hdist1[1] <- round(output_df2$Hcbh_bp[1] - 1, 1)
+output_df2$effdist1[1] <- round(output_df2$Hcbh_bp[1] - 1, 0)
+output_df2$last_effdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 0)
+output_df2$last_Hcbh[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$last_Hdptf[1] <- round(df_effective$max_height[1], 1)
+output_df2$last_Hdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 1)
+output_df2$max_dptf[1] <- round(df_effective$max_height[1] - output_df2$Hcbh_bp[1], 0)
+output_df2$max_Hcbh[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$max_Hdptf[1] <- round(df_effective$max_height[1], 1)
+output_df2$max_Hdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 1)
+}
+# Check the specified conditions
+if(!is.na(output_df2$below_hcbhbp[1]) && output_df2$below_hcbhbp[1] > 75 && numeric_count == 1) {
+output_df2$maxlad_Hcbh[1] <- 1.5
+output_df2$maxlad_Hdptf[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$maxlad_Hdist[1] <- 0.5
+output_df2$maxlad_effdist[1] <- NA
+output_df2$Hcbh1_Hdptf1[1] <- round(output_df2$below_hcbhbp[1], 1)
+output_df2$Hcbh1_Hdptf1[1] <- round(output_df2$below_hcbhbp[1], 1)
+output_df2$Hcbh1[1] <- 1.5
+output_df2$Hdptf1[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$dptf1[1] <- round(output_df2$Hcbh_bp[1], 0)
+output_df2$Hdist1[1] <- 0.5
+output_df2$effdist1[1] <- NA
+output_df2$last_effdist[1] <- NA
+output_df2$last_Hcbh[1] <- 1.5
+output_df2$last_Hdptf[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$last_Hdist[1] <- 0.5
+output_df2$max_dptf[1] <- round(output_df2$Hcbh_bp[1], 0)
+output_df2$max_Hcbh[1] <- 1.5
+output_df2$max_Hdptf[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$max_Hdist[1] <- 0.5
+}
+treeID<-unique(factor(df_effective$treeID))
+if(!"treeID" %in% colnames(output_df2)) {
+output_df2 <- cbind(df_effective[c("treeID","treeID1")],output_df2 )
+}
+max_height<-data.frame(df_effective$max_height)
+names(max_height)<-"max_height"
+if(!"max_height" %in% colnames(output_df2)) {
+output_df2 <- cbind(output_df2, df_effective[c("max_height")])
+}
+} else {
+output_df2 <- data.frame(matrix(ncol = 0, nrow = nrow(df_effective)))
+# Add the "treeID" and "treeID1" columns to output_df2
+if (!("treeID" %in% colnames(output_df2))) {
+output_df2 <- cbind(df_effective[c("treeID", "treeID1")], output_df2)
+}
+max_height<-data.frame(df_effective$max_height)
+names(max_height)<-"max_height"
+if(!"max_height" %in% colnames(output_df2)) {
+output_df2 <- cbind(output_df2, df_effective[c("max_height")])
+}
+}
+cummulative_LAD <-output_df2
+cummulative_LAD
+df_effective
+df_orig
+df_effective <- df_effective[, colSums(!is.na(df_effective)) > 0]
+treeID<-"treeID"
+treeID1<-"treeID1"
+print(paste("treeID:", df_effective[[treeID]]))  # Debugging line
+# Add more noise to x-values
+df_orig$height <- jitter(df_orig$height, amount = 1)
+df_effective
+df_orig
+# Calculate the cumulative sum
+df_orig$cumulative_value <- cumsum(df_orig$lad)
+# Fit a segmented regression with automatic breakpoint estimation
+seg.mod <- segmented(lm(cumulative_value ~ height, data = df_orig),
+seg.Z = ~height,
+control = seg.control(fix.npsi = TRUE))
+library(segmented)
+# Calculate the cumulative sum
+df_orig$cumulative_value <- cumsum(df_orig$lad)
+# Fit a segmented regression with automatic breakpoint estimation
+seg.mod <- segmented(lm(cumulative_value ~ height, data = df_orig),
+seg.Z = ~height,
+control = seg.control(fix.npsi = TRUE))
+# Check if breakpoint estimation was successful
+if (is.null(seg.mod$psi) || any(is.na(seg.mod$coef))) {
+# If breakpoint estimation failed, try alternative modeling approach (e.g., polynomial regression)
+poly.mod <- lm(cumulative_value ~ poly(height, degree = 2), data = df_orig)
+breakpoint <- poly.mod$coefficients[3]  # Adjusted to get the appropriate coefficient
+} else {
+# Get the breakpoint value
+breakpoint <- seg.mod$psi["psi1.height", "Est."]
+}
+# Get the index of the value in df$height that is closest to the breakpoint
+index <- which.min(abs(df_orig$height - breakpoint))
+# Handle breakpoints at the boundary
+if (index <= 1 || index >= nrow(df_orig)) {
+warning("Breakpoint at the boundary detected. Consider an alternative modeling approach or data transformation.")
+closest_row <- data.frame(Hcbh_bp = NA, cumlad = NA)
+} else {
+# Subset the row from the data frame that is closest to the breakpoint
+closest_row <- df_orig[index, c("height", "cumulative_value")]
+names(closest_row) <- c("Hcbh_bp", "cumlad")
+}
+}, error = function(e) {
+# Initialize the result data frame
+closest_row <- data.frame()
+df_effective<- effective_distances |> dplyr::filter(treeID == "1_Eglin_zone1_CROWN")
+df_orig<- LAD_profiles |> dplyr::filter(treeID == "1_Eglin_zone1_CROWN")
+tryCatch({
+# Validate input data frames
+stopifnot(is.data.frame(df_orig), is.data.frame(df_effective))
+stopifnot("height" %in% colnames(df_orig), "lad" %in% colnames(df_orig))
+# Remove columns with only NAs from df_effective
+df_effective <- df_effective[, colSums(!is.na(df_effective)) > 0]
+treeID<-"treeID"
+treeID1<-"treeID1"
+print(paste("treeID:", df_effective[[treeID]]))  # Debugging line
+# Add more noise to x-values
+df_orig$height <- jitter(df_orig$height, amount = 1)
+# Calculate the cumulative sum
+df_orig$cumulative_value <- cumsum(df_orig$lad)
+# Fit a segmented regression with automatic breakpoint estimation
+seg.mod <- segmented(lm(cumulative_value ~ height, data = df_orig),
+seg.Z = ~height,
+control = seg.control(fix.npsi = TRUE))
+# Check if breakpoint estimation was successful
+if (is.null(seg.mod$psi) || any(is.na(seg.mod$coef))) {
+# If breakpoint estimation failed, try alternative modeling approach (e.g., polynomial regression)
+poly.mod <- lm(cumulative_value ~ poly(height, degree = 2), data = df_orig)
+breakpoint <- poly.mod$coefficients[3]  # Adjusted to get the appropriate coefficient
+} else {
+# Get the breakpoint value
+breakpoint <- seg.mod$psi["psi1.height", "Est."]
+}
+# Get the index of the value in df$height that is closest to the breakpoint
+index <- which.min(abs(df_orig$height - breakpoint))
+# Handle breakpoints at the boundary
+if (index <= 1 || index >= nrow(df_orig)) {
+warning("Breakpoint at the boundary detected. Consider an alternative modeling approach or data transformation.")
+closest_row <- data.frame(Hcbh_bp = NA, cumlad = NA)
+} else {
+# Subset the row from the data frame that is closest to the breakpoint
+closest_row <- df_orig[index, c("height", "cumulative_value")]
+names(closest_row) <- c("Hcbh_bp", "cumlad")
+}
+}, error = function(e) {
+# Error handling code block
+error_row <- df_orig[is.na(df_orig$cumulative_value), ]
+message("An error occurred in row ", which(is.na(df_orig$cumulative_value)),
+" with treeID '", error_row$treeID, "': ", conditionMessage(e))
+closest_row <- df_effective
+})
+if(length(closest_row) > 0 && all(!is.na(closest_row))) {
+total_lad <- sum(df_orig$lad)
+hcbh_bp <- closest_row[1, grep("^Hcbh_bp$", names(closest_row))]
+below_df1 <- df_orig[df_orig$height <= hcbh_bp, ]
+above_df1 <- df_orig[df_orig$height >= hcbh_bp, ]
+lad_below <- below_df1$lad
+lad_above <- above_df1$lad
+below_percentage <- sum(lad_below) / total_lad * 100
+above_percentage <- sum(lad_above) / total_lad * 100
+# Store the percentages below and above Hcbh_bp
+percentage2 <- data.frame(below_percentage, above_percentage)
+# Create the column name by concatenating Hcbh and Hdepth column names
+names(percentage2) <- c("below_hcbhbp", "above_hcbhbp")
+output_df2<-data.frame(closest_row,percentage2)
+lad_columns <- grep("^Hcbh_bp$", names(output_df2))
+lad_columns1 <- names(output_df2)[lad_columns]
+# Check how many lad_columns in the current row have numeric values
+numeric_count <- sum(sapply(output_df2[1, lad_columns1], function(x) is.numeric(x) & !is.na(x)))
+# Check the specified conditions
+if(!is.na(output_df2$above_hcbhbp[1]) && output_df2$above_hcbhbp[1] > 75 && numeric_count == 1) {
+output_df2$maxlad_Hcbh[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$maxlad_Hdptf[1] <- round(df_effective$max_height[1], 1)
+output_df2$maxlad_Hdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 1)
+output_df2$maxlad_effdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 0)
+output_df2$Hcbh1_Hdptf1[1] <- output_df2$above_hcbhbp[1]
+output_df2$Hcbh1[1] <- output_df2$Hcbh_bp[1]
+output_df2$Hdptf1[1] <- df_effective$max_height[1]
+output_df2$dptf1[1] <- round(df_effective$max_height[1] - output_df2$Hcbh_bp[1], 0)
+output_df2$Hdist1[1] <- round(output_df2$Hcbh_bp[1] - 1, 1)
+output_df2$effdist1[1] <- round(output_df2$Hcbh_bp[1] - 1, 0)
+output_df2$last_effdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 0)
+output_df2$last_Hcbh[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$last_Hdptf[1] <- round(df_effective$max_height[1], 1)
+output_df2$last_Hdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 1)
+output_df2$max_dptf[1] <- round(df_effective$max_height[1] - output_df2$Hcbh_bp[1], 0)
+output_df2$max_Hcbh[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$max_Hdptf[1] <- round(df_effective$max_height[1], 1)
+output_df2$max_Hdist[1] <- round(output_df2$Hcbh_bp[1] - 1, 1)
+}
+# Check the specified conditions
+if(!is.na(output_df2$below_hcbhbp[1]) && output_df2$below_hcbhbp[1] > 75 && numeric_count == 1) {
+output_df2$maxlad_Hcbh[1] <- 1.5
+output_df2$maxlad_Hdptf[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$maxlad_Hdist[1] <- 0.5
+output_df2$maxlad_effdist[1] <- NA
+output_df2$Hcbh1_Hdptf1[1] <- round(output_df2$below_hcbhbp[1], 1)
+output_df2$Hcbh1_Hdptf1[1] <- round(output_df2$below_hcbhbp[1], 1)
+output_df2$Hcbh1[1] <- 1.5
+output_df2$Hdptf1[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$dptf1[1] <- round(output_df2$Hcbh_bp[1], 0)
+output_df2$Hdist1[1] <- 0.5
+output_df2$effdist1[1] <- NA
+output_df2$last_effdist[1] <- NA
+output_df2$last_Hcbh[1] <- 1.5
+output_df2$last_Hdptf[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$last_Hdist[1] <- 0.5
+output_df2$max_dptf[1] <- round(output_df2$Hcbh_bp[1], 0)
+output_df2$max_Hcbh[1] <- 1.5
+output_df2$max_Hdptf[1] <- round(output_df2$Hcbh_bp[1], 1)
+output_df2$max_Hdist[1] <- 0.5
+}
+treeID<-unique(factor(df_effective$treeID))
+if(!"treeID" %in% colnames(output_df2)) {
+output_df2 <- cbind(df_effective[c("treeID","treeID1")],output_df2 )
+}
+max_height<-data.frame(df_effective$max_height)
+names(max_height)<-"max_height"
+if(!"max_height" %in% colnames(output_df2)) {
+output_df2 <- cbind(output_df2, df_effective[c("max_height")])
+}
+} else {
+output_df2 <- data.frame(matrix(ncol = 0, nrow = nrow(df_effective)))
+# Add the "treeID" and "treeID1" columns to output_df2
+if (!("treeID" %in% colnames(output_df2))) {
+output_df2 <- cbind(df_effective[c("treeID", "treeID1")], output_df2)
+}
+max_height<-data.frame(df_effective$max_height)
+names(max_height)<-"max_height"
+if(!"max_height" %in% colnames(output_df2)) {
+output_df2 <- cbind(output_df2, df_effective[c("max_height")])
+}
+}
+cummulative_LAD <-output_df2
+cummulative_LAD
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+library(LadderFuelsR)
+library(magrittr)
+library(dplyr)
+# LAD profiles derived from normalized ALS data after applying [lad.profile()] function
+data_path <- file.path("D:/OLGA/R_library/LadderFuelsR/extdata/LAD_profiles.txt")
+LAD_profiles <- read.table(data_path, sep = "\t", header = TRUE)
+LAD_profiles$treeID <- factor(LAD_profiles$treeID)
+trees_name1 <- as.character(LAD_profiles$treeID)
+trees_name2 <- factor(unique(trees_name1))
+metrics_precentile_list1<-list()
+for (i in levels(trees_name2)) {
+tree1 <- LAD_profiles |> dplyr::filter(treeID == i)
+metrics_precentil <- get_gaps_fbhs(tree1)
+metrics_precentile_list1[[i]] <- metrics_precentil
+}
+metrics_all_percentil <- dplyr::bind_rows(metrics_precentile_list1)
+metrics_all_percentil$treeID <- factor(metrics_all_percentil$treeID)
+# Remove the row with all NA values from the original data frame
+# First remove "treeID" and "treeID1" columns
+no_treeID <- metrics_all_percentil[, -which(names(metrics_all_percentil) == c("treeID","treeID1"))]
+# Check if any row has all NA values
+NA_or_zero <- apply(no_treeID, 1, function(row) all(is.na(row) | row == 0))
+# Get the row index with all NA values
+row_index <- which(NA_or_zero)
+# Remove the row with all NA values from the original data frame
+if (length(row_index) > 0) {
+gap_cbh_metrics <- metrics_all_percentil[-row_index, ]
+} else {
+gap_cbh_metrics <- metrics_all_percentil
+}
+library(magrittr)
+library(dplyr)
+# LAD profiles derived from normalized ALS data after applying [lad.profile()] function
+data_path <- file.path("D:/OLGA/R_library/LadderFuelsR/extdata/LAD_profiles.txt")
+LAD_profiles <- read.table(data_path, sep = "\t", header = TRUE)
+LAD_profiles$treeID <- factor(LAD_profiles$treeID)
+trees_name1 <- as.character(LAD_profiles$treeID)
+trees_name2 <- factor(unique(trees_name1))
+percentile_list1<-list()
+for (i in levels(trees_name2)) {
+tree1 <- LAD_profiles |> dplyr::filter(treeID == i)
+percentiles <- calculate_gaps_perc2(tree1)
+percentile_list1[[i]] <- percentiles
+}
+gaps_perc2 <- dplyr::bind_rows(percentile_list1)
+gaps_perc2$treeID <- factor(gaps_perc2$treeID)
+trees_name1 <- as.character(gaps_perc2$treeID)
+trees_name2 <- factor(unique(trees_name1))
+metrics_distance_list <- list()
+for (i in levels(trees_name2)) {
+# Filter data for each tree
+tree1 <- gap_cbh_metrics |> dplyr::filter(treeID == i)
+tree2 <- gaps_perc2 |> dplyr::filter(treeID == i)
+# Get distance metrics for each tree
+metrics_distance <- get_distance(tree1, tree2)
+metrics_distance_list[[i]] <- metrics_distance
+}
+# Combine the individual data frames
+distance_metrics <- dplyr::bind_rows(metrics_distance_list)
+metrics_depth_list <- list()
+for (i in levels(LAD_profiles$treeID)){
+tree1 <- LAD_profiles |> dplyr::filter(treeID == i)
+tree2 <- distance_metrics |> dplyr::filter(treeID == i)
+# Get depths for each tree
+metrics_depth <- get_depths(tree1, tree2)
+metrics_depth_list[[i]] <- metrics_depth
+}
+# Combine the individual data frames
+depth_metrics <- dplyr::bind_rows(metrics_depth_list)
+depth_metrics
+trees_name1 <- as.character(depth_metrics$treeID)
+trees_name2 <- factor(unique(trees_name1))
+fbh_corr_list <- list()
+for (i in levels(trees_name2)){
+# Filter data for each tree
+tree3 <- depth_metrics |> dplyr::filter(treeID == i)
+# Get real fbh for each tree
+fbh_corr <- get_real_fbh(tree3)
+# Store fbh values in a list
+fbh_corr_list[[i]] <- fbh_corr
+}
+# Combine fbh values for all trees
+effective_fbh <- dplyr::bind_rows(fbh_corr_list)
+effective_fbh$treeID <- factor(effective_fbh$treeID)
+effective_fbh
+effective_fbh$treeID <- factor(effective_fbh$treeID)
+trees_name1 <- as.character(effective_fbh$treeID)
+trees_name2 <- factor(unique(trees_name1))
+depth_metrics_corr_list <- list()
+for (i in levels(trees_name2)){
+# Filter data for each tree
+tree3 <- effective_fbh |> dplyr::filter(treeID == i)
+# Get real depths for each tree
+depth_metrics_corr <- get_real_depths(tree3)
+depth_metrics_corr_list[[i]] <- depth_metrics_corr
+}
+# Combine depth values for all trees
+effective_depth <- dplyr::bind_rows(depth_metrics_corr_list)
+effective_depth
+trees_name1 <- as.character(effective_depth$treeID)
+trees_name2 <- factor(unique(trees_name1))
+corr_distance_metrics_list <- list()
+for (i in levels(trees_name2)) {
+tree1 <- effective_depth |> dplyr::filter(treeID == i)
+corr_distance_metrics <- get_effective_gap(tree1)
+corr_distance_metrics_list[[i]] <- corr_distance_metrics
+}
+# Combine the individual data frames
+effective_distances <- dplyr::bind_rows(corr_distance_metrics_list)
+effective_distances
+trees_name1 <- as.character(effective_distances$treeID)
+trees_name2 <- factor(unique(trees_name1))
+cum_LAD_metrics_list <- list()
+for (i in levels(trees_name2)) {
+# Filter data for each tree
+tree1 <- LAD_profiles |> dplyr::filter(treeID == i)
+tree2 <- effective_distances |> dplyr::filter(treeID == i)
+# Get cumulative LAD metrics for each tree
+cum_LAD_metrics <- get_cum_break(tree1, tree2)
+cum_LAD_metrics_list[[i]] <- cum_LAD_metrics
+}
+roxygen2::roxygenise()

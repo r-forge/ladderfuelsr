@@ -1,0 +1,8 @@
+library(devtools)
+library(roxygen2)
+roxygen2::roxygenise()
+library(LadderFuelsR)
+git fetch origin
+install.packages("htmltools")
+library(htmltools)
+library(htmlwidgets)
