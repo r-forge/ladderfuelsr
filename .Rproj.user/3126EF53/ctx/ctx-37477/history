@@ -1,0 +1,512 @@
+merged_df1 <- merged_df1 %>%
+dplyr::select(-starts_with("dist"))
+}
+merged_df1<- get_renamed_df (merged_df1)
+if (length(hdist_cols) > length(all_effdist_cols) && merged_df1$Hcbh1 == 1.5) {
+merged_df1 <- merged_df1[, !names(merged_df1) %in% last(hdist_cols)]
+}
+merged_df1<- get_renamed_df (merged_df1)
+}
+}
+}
+##########################################################################
+# IF NOT ANY CHANGE
+##########################################################################
+if (identical(merged_df, merged_df1)) {
+all_effdist_cols <- grep("^effdist\\d+$", names(merged_df1), value = TRUE)
+if (length(all_effdist_cols) > 0) {
+for (col in all_effdist_cols) {
+if (any(merged_df1[, col] == 1)) {
+merged_df1[, col] <- NULL
+}}
+}
+dist_cols <- grep("^dist\\d+$", names(merged_df1), value = TRUE)
+hdist_cols <- grep("^Hdist", names(merged_df1), value = TRUE)
+if (all(dist_cols %in% colnames (merged_df1)) && all(hdist_cols %in% colnames (merged_df1))){
+merged_df1 <- merged_df1 %>%
+dplyr::select(-starts_with("dist"))
+}
+merged_df1<- get_renamed_df (merged_df1)
+}
+####################################
+if(!all(cols_to_append  %in% colnames(merged_df1))){
+merged_df1<- cbind( merged_df1, append_df)
+}
+if(!all(cols_to_append  %in% colnames(merged_df))){
+merged_df<- cbind( merged_df, append_df)
+}
+all_effdist_cols <- grep("^effdist\\d+$", names(merged_df1), value = TRUE)
+dist_cols <- grep("^dist\\d+$", names(merged_df1), value = TRUE)
+hdist_cols <- grep("^Hdist\\d+$", names(merged_df1), value = TRUE)
+if (length(all_effdist_cols) > 0 && length(hdist_cols) > 0) {
+for (col in all_effdist_cols) {
+if (any(merged_df1[, col] == 1)) {
+# Extract the numeric suffix
+suffix <- sub("^effdist", "", col)
+# Identify corresponding Hdist and dist columns by the suffix
+corresponding_hdist <- paste0("Hdist", suffix)
+corresponding_dist <- paste0("dist", suffix)
+# Set them to NULL
+merged_df1[, col] <- NULL
+if(corresponding_hdist %in% names(merged_df1)) {
+merged_df1[, corresponding_hdist] <- NULL
+}
+if(corresponding_dist %in% names(merged_df1)) {
+merged_df1[, corresponding_dist] <- NULL
+}
+}
+}
+merged_df1<- get_renamed_df (merged_df1)
+###########################################################
+dist_cols <- grep("^dist\\d+$", names(merged_df1), value = TRUE)
+if (length(dist_cols) > 0) {
+for (col in dist_cols) {
+if (any(merged_df1[, col] == 1)) {
+merged_df1[, col] <- NULL
+}}
+}
+merged_df1<- get_renamed_df (merged_df1)
+##########################################################################
+# For each column starting with "Hdist"
+hcbh_cols <- grep("^Hcbh\\d+$", colnames(merged_df1), value = TRUE)
+hdist_cols <- grep("^Hdist\\d+$", colnames(merged_df1), value = TRUE)
+for (j in seq_along(hdist_cols)) {
+if (j < length(hcbh_cols) && merged_df1$Hcbh1 == 1.5) { # Ensure we're not exceeding the bounds of hcbh columns
+hcbh_col <- hcbh_cols[j + 1] # Accessing the next Hcbh column
+hdist_col <- hdist_cols[j]
+# Adjust value if the condition is met
+if (merged_df1[1, hdist_col] != merged_df1[1, hcbh_col] - 1) {
+merged_df1[1, hdist_col] <- merged_df1[1, hcbh_col] - 1
+}
+}
+}
+# Iterate through all the Hdist and Hcbh columns
+for (j in seq_along(hdist_cols)) {
+# Ensure we're not exceeding the bounds of hcbh columns
+if (j <= length(hcbh_cols)) {
+hcbh_col <- hcbh_cols[j]
+hdist_col <- hdist_cols[j]
+# Check the condition for Hcbh1 (this assumes that the condition for Hcbh1 holds for all other Hcbh columns)
+if (merged_df1$Hcbh1 > 1.5) {
+# Set Hdist value to Hcbh - 1
+merged_df1[1, hdist_col] <- merged_df1[1, hcbh_col] - 1
+}
+}
+}
+########################################
+hdist_cols <- grep("^Hdist\\d+$", colnames(merged_df1), value = TRUE)
+# Only proceed if there's more than one Hdist column
+if (length(hdist_cols) > 1) {
+cols_to_remove <- c()  # Initialize an empty vector
+# Loop through Hdist columns starting from the second one
+for (j in 2:length(hdist_cols)) {
+current_value <- merged_df1[1, hdist_cols[j]]
+previous_value <- merged_df1[1, hdist_cols[j-1]]
+# Check if neither of the values is NA and if they are equal
+if (!is.na(current_value) && !is.na(previous_value) && current_value == previous_value) {
+cols_to_remove <- c(cols_to_remove, hdist_cols[j])
+}
+}
+# Remove the columns outside the loop
+merged_df1 <- merged_df1[, !names(merged_df1) %in% cols_to_remove, drop = FALSE]
+}
+merged_df1<- get_renamed_df (merged_df1)
+}
+######## Hcbh with max % LAD    ###########################
+# Check if df_sub is not empty and contains "Hdist" in column names
+col_names <- names(merged_df1)
+hcbh_cols <- grep("^Hcbh\\d+$", col_names, value = TRUE)
+hdptf_cols <- grep("^Hdptf\\d+$", col_names, value = TRUE)
+hdist_cols <- grep("^Hdist\\d+$", col_names, value = TRUE)
+effdist_cols <- grep("^effdist\\d+$", col_names, value = TRUE)
+# Create a vector of all Hdist values
+hcbh_values <- unlist(merged_df1[1, hcbh_cols])
+hdist_values <- unlist(merged_df1[1, hdist_cols])
+hdepth_values <- unlist(merged_df1[1, hdptf_cols])
+effdist_values <- unlist(merged_df1[1, effdist_cols])
+# Identify lad columns based on naming pattern
+lad_columns <- grep("^Hcbh\\d+_Hdptf\\d+$", names(merged_df1), value = TRUE)
+# Flatten all lad values into a vector
+lad_values <- as.vector(unlist(merged_df1[, lad_columns]))
+# Get the maximum value across all lad columns
+max_lad_value <- max(lad_values, na.rm = TRUE)
+# Get the index (column number) of the last occurrence of the max value
+index_max_lad <- max(which(lad_values == max_lad_value))
+# Now you can use index_max_lad to get the corresponding column
+max_lad_column <- lad_columns[index_max_lad]
+# Get the max lad value from the first row of the dataframe
+max_lad_values <- unlist(merged_df1[1, max_lad_column])
+# Extract suffix from max_lad_column
+suffix <- as.numeric(sub(".*Hcbh(\\d+)_.*", "\\1", max_lad_column))
+suffix1<-suffix-1
+# Use the suffix to get the corresponding Hcbh, Hdist and Hdepth columns
+max_Hcbh_column <- paste0("Hcbh", suffix)
+max_Hdist_column <- paste0("Hdist", suffix)
+max_Hdist_column_minusone <- paste0("Hdist", suffix1)
+max_effdist_column_minusone <- paste0("effdist", suffix1)
+max_Hdepth_column <- paste0("Hdptf", suffix)
+max_effdist_column <- paste0("effdist", suffix)
+max_dptf_column <- paste0("dptf", suffix)
+if (max_Hdist_column %in% colnames(merged_df1) && max_effdist_column %in% colnames(merged_df1)) {
+max_df <- data.frame(
+maxlad_Hcbh = merged_df1[[max_Hcbh_column]],
+maxlad_Hdist = merged_df1[[max_Hdist_column]],
+maxlad_Hdptf = merged_df1[[max_Hdepth_column]],
+maxlad_dptf = merged_df1[[max_dptf_column]],
+maxlad_effdist = merged_df1[[max_effdist_column]]
+)
+names(max_df) <- c("maxlad_Hcbh", "maxlad_Hdist", "maxlad_Hdptf","maxlad_dptf", "maxlad_effdist")
+}
+if (max_Hdist_column %in% colnames(merged_df1) && max_effdist_column %in% colnames(merged_df1) && merged_df1$Hcbh1 == 1.5) {
+max_df <- data.frame(
+maxlad_Hcbh = merged_df1[[max_Hcbh_column]],
+maxlad_Hdist = merged_df1[[max_Hdist_column]],
+maxlad_Hdptf = merged_df1[[max_Hdepth_column]],
+maxlad_dptf = merged_df1[[max_dptf_column]],
+maxlad_effdist = merged_df1[[max_effdist_column]]
+)
+names(max_df) <- c("maxlad_Hcbh", "maxlad_Hdist", "maxlad_Hdptf","maxlad_dptf", "maxlad_effdist")
+}
+if (!max_Hdist_column %in% colnames(merged_df1) && all(max_Hdist_column_minusone %in% colnames(merged_df1)) && all(max_effdist_column_minusone %in% colnames(merged_df1))) {
+# Check if the columns exist; if not, use default values
+max_Hdist_val <- ifelse(max_Hdist_column_minusone %in% colnames(merged_df1), merged_df1[[max_Hdist_column_minusone]], NA)
+max_effdist_val <- ifelse(max_effdist_column_minusone %in% colnames(merged_df1), merged_df1[[max_effdist_column_minusone]], NA)
+max_df <- data.frame(
+maxlad_Hcbh = merged_df1[[max_Hcbh_column]],
+maxlad_Hdist = merged_df1[[max_Hdist_column_minusone]],
+maxlad_Hdptf = merged_df1[[max_Hdepth_column]],
+maxlad_dptf = merged_df1[[max_dptf_column]],
+maxlad_effdist = merged_df1[[max_effdist_column_minusone]]
+)
+names(max_df) <- c("maxlad_Hcbh", "maxlad_Hdist", "maxlad_Hdptf", "maxlad_dptf","maxlad_effdist")
+}
+if (!max_Hdist_column %in% colnames(merged_df1) && !max_effdist_column %in% colnames(merged_df1) && !exists ("max_df")) {
+max_df <- data.frame(
+maxlad_Hcbh = merged_df1[[max_Hcbh_column]],
+maxlad_dptf = merged_df1[[max_dptf_column]],
+maxlad_Hdptf = merged_df1[[max_Hdepth_column]],
+maxlad_effdist = 0
+)
+names(max_df) <- c("maxlad_Hcbh","maxlad_dptf", "maxlad_Hdptf","maxlad_effdist")
+}
+Hdist1<-"Hdist1"
+if (max_Hdist_column %in% colnames(merged_df1) && !max_effdist_column %in% colnames(merged_df1) && Hdist1 %in% colnames(merged_df1)) {
+if (merged_df1$Hdist1 > 1.5) {
+max_df <- data.frame(
+maxlad_Hcbh = merged_df1[[max_Hcbh_column]],
+maxlad_Hdist = merged_df1[[max_Hdist_column]],
+maxlad_Hdptf = merged_df1[[max_Hdepth_column]],
+maxlad_dptf = merged_df1[[max_dptf_column]],
+maxlad_effdist = 0
+)
+names(max_df) <- c("maxlad_Hcbh","maxlad_Hdist", "maxlad_Hdptf","maxlad_dptf","maxlad_effdist")
+}}
+if (max_Hdist_column %in% colnames(merged_df1) && !max_effdist_column %in% colnames(merged_df1) && Hdist1 %in% colnames(merged_df1) && max_effdist_column_minusone %in% colnames(merged_df1)) {
+if (merged_df1$Hdist1 == 1.5) {
+max_df <- data.frame(
+maxlad_Hcbh = merged_df1[[max_Hcbh_column]],
+maxlad_Hdist = merged_df1[[max_Hdist_column]],
+maxlad_Hdptf = merged_df1[[max_Hdepth_column]],
+maxlad_dptf = merged_df1[[max_dptf_column]],
+maxlad_effdist = merged_df1[[max_effdist_column_minusone]]
+)
+names(max_df) <- c("maxlad_Hcbh","maxlad_Hdist", "maxlad_Hdptf","maxlad_dptf","maxlad_effdist")
+}}
+if (max_Hdist_column %in% colnames(merged_df1) && !max_effdist_column %in% colnames(merged_df1) && Hdist1 %in% colnames(merged_df1) && !max_effdist_column_minusone %in% colnames(merged_df1)) {
+if (merged_df1$Hdist1 == 1.5) {
+max_df <- data.frame(
+maxlad_Hcbh = merged_df1[[max_Hcbh_column]],
+maxlad_Hdist = merged_df1[[max_Hdist_column]],
+maxlad_Hdptf = merged_df1[[max_Hdepth_column]],
+maxlad_dptf = merged_df1[[max_dptf_column]],
+maxlad_effdist = 0
+)
+names(max_df) <- c("maxlad_Hcbh","maxlad_Hdist", "maxlad_Hdptf","maxlad_dptf","maxlad_effdist")
+}}
+maxlad_Hdist<-"maxlad_Hdist"
+if (exists("max_df") && maxlad_Hdist %in% colnames(max_df)) {
+if(max_Hdist_column %in% colnames(merged_df1) && !is.na(max_df[[maxlad_Hdist]])) {
+if (max_df$maxlad_Hdist > max_df$maxlad_Hdptf) {
+max_df$maxlad_Hdist<- (max_df$maxlad_Hdptf - max_df$maxlad_dptf)-1
+} }
+if ("maxlad_Hdist"%in% colnames(max_df)) {
+if(max_df$maxlad_Hdist < 1 ) {
+max_df$maxlad_Hdist<- 0
+}}
+if (suffix == 1 && merged_df1$Hcbh1 == 1.5){
+max_df$maxlad_effdist<- 0
+}
+maxlad_Hcbh<-"maxlad_Hcbh"
+maxlad_effdist<-"maxlad_effdist"
+maxlad_Hdist<-"maxlad_Hdist"
+if (maxlad_Hcbh %in% colnames(max_df) && !is.na(max_df[[maxlad_effdist]])) {
+if (max_df$maxlad_Hcbh[1] == 1.5 || (maxlad_Hdist %in% colnames(max_df) && max_df$maxlad_Hdist[1] == 1.5)) {
+max_df$maxlad_effdist[1] <- 0
+}
+}
+if (maxlad_Hcbh %in% colnames(max_df) && !is.na(max_df[[maxlad_Hdist]])) {
+max_df$maxlad_Hdist[1] <- max_df$maxlad_Hcbh[1] -1
+}
+}
+merged_df1<-cbind(merged_df1, max_df)
+#######################################
+if (length(all_effdist_cols) > 0 && length(hdist_cols) > 0) {
+# Extract relevant columns
+hcbh_cols <- grep("^Hcbh\\d+$", colnames(merged_df1), value = TRUE)
+effdist_cols <- grep("^effdist\\d+$", colnames(merged_df1), value = TRUE)
+hdist_cols <- grep("^Hdist\\d+$", colnames(merged_df1), value = TRUE)
+# Determine number of effdist columns that should be present
+if (merged_df1$Hcbh1 > 1.5 && merged_df1$Hdist1 > 1.5) {
+effdist_required <- length(hcbh_cols)
+} else if (merged_df1$Hcbh1 == 1.5 || (merged_df1$Hcbh1 > 1.5 && merged_df1$Hdist1 == 1.5)) {
+effdist_required <- length(hcbh_cols) - 1
+}
+# Determine the effdist columns to remove
+effdist_to_remove <- tail(effdist_cols, -effdist_required)
+# Repeat for Hdist columns
+if (merged_df1$Hcbh1 > 1.5) {
+hdist_required <- length(hcbh_cols)
+} else if (merged_df1$Hcbh1 == 1.5) {
+hdist_required <- length(hcbh_cols) - 1
+}
+hdist_to_remove <- tail(hdist_cols, -hdist_required)
+# Combine the columns to remove
+cols_to_removefi <- c(effdist_to_remove, hdist_to_remove)
+# Remove those columns
+merged_df1 <- merged_df1[ , !(names(merged_df1) %in% cols_to_removefi)]
+######################################
+# Extracting column names related to Hcbh, Hdist, Hdptf, and effdist
+hcbh_cols <- grep("^Hcbh", colnames(merged_df1), value = TRUE)
+hdist_cols <- grep("^Hdist", colnames(merged_df1), value = TRUE)
+hdptf_cols <- grep("^Hdptf", colnames(merged_df1), value = TRUE)
+effdist_cols <- grep("^effdist", colnames(merged_df1), value = TRUE)
+# Identify the effdist column that matches maxlad_effdist before calculations
+matching_index <- which(merged_df1[1, effdist_cols] == merged_df1$maxlad_effdist)[1]
+if (merged_df1$Hcbh1 > 2.5) {
+for (j in seq_along(effdist_cols)) {
+if (j == 1) {
+merged_df1[1, effdist_cols[j]] <- merged_df1[[hcbh_cols[j]]] - 1.5
+} else {
+merged_df1[1, effdist_cols[j]] <- merged_df1[[hdist_cols[j]]] - merged_df1[[hdptf_cols[j - 1]]]
+}
+}
+}
+if (merged_df1$Hcbh1 <= 2.5 && length(hdist_cols) > 0) {
+for (j in seq_along(effdist_cols)) {
+if (merged_df1$Hdist1 == 1.5) {
+merged_df1[1, effdist_cols[j]] <- merged_df1[[hdist_cols[j+1]]] - merged_df1[[hdptf_cols[j]]]
+}
+}
+}
+# If there's only one effdist column, update maxlad_effdist with its value
+if (length(effdist_cols) == 1) {
+merged_df1$maxlad_effdist <- merged_df1[1, effdist_cols]
+} else if (!is.na(matching_index)) {
+merged_df1$maxlad_effdist <- merged_df1[1, effdist_cols[matching_index]]
+}
+if (length(effdist_cols) == 1 && length(hdist_cols) == 1 && merged_df1$Hcbh1 <= 2.5) {
+merged_df1[1, effdist_cols[1]] <- merged_df1[[hdist_cols[1]]] - merged_df1[[hdptf_cols[1]]]
+merged_df1$maxlad_effdist <- merged_df1[[hdist_cols[1]]] - merged_df1[[hdptf_cols[1]]]
+}
+# Remove sub-columns if they exist
+cols_to_remove <- grep("^maxlad_effdist\\.", colnames(merged_df1), value = TRUE)
+merged_df1 <- merged_df1[, !names(merged_df1) %in% cols_to_remove]
+}
+# Remove sub-columns if they exist
+cols_to_remove1 <- grep("^max1", colnames(merged_df1), value = TRUE)
+merged_df1 <- merged_df1[, !names(merged_df1) %in% cols_to_remove1]
+##########################################################################
+all_LAD<-merged_df
+effective_LAD<-merged_df1
+# Return them in a list
+return(list(df1 = all_LAD, df2 = effective_LAD))
+}
+LAD_profiles
+effective_distances
+str(effective_distances)
+str(LAD_profiles)
+trees_name1 <- as.character(effective_distances$treeID)
+trees_name2 <- factor(unique(trees_name1))
+LAD_metrics1 <- list()
+LAD_metrics2 <- list()
+for (i in levels(trees_name2)) {
+# Filter data for each tree
+tree1 <- LAD_profiles |> dplyr::filter(treeID == i)
+tree2 <- effective_distances |> dplyr::filter(treeID == i)
+# Get LAD metrics for each tree
+LAD_metrics <- get_layers_lad(tree1, tree2)
+LAD_metrics1[[i]] <- LAD_metrics$df1
+LAD_metrics2[[i]] <- LAD_metrics$df2
+}
+all_LAD <- dplyr::bind_rows(LAD_metrics1)
+effective_LAD <- dplyr::bind_rows(LAD_metrics2)
+library(magrittr)
+library(segmented)
+library(gdata)
+library(dplyr)
+LAD_profiles$treeID <- factor(LAD_profiles$treeID)
+trees_name1 <- as.character(effective_distances$treeID)
+trees_name2 <- factor(unique(trees_name1))
+cum_LAD_metrics_list <- list()
+for (i in levels(trees_name2)) {
+# Filter data for each tree
+tree1 <- LAD_profiles |> dplyr::filter(treeID == i)
+tree2 <- effective_distances |> dplyr::filter(treeID == i)
+# Get cumulative LAD metrics for each tree
+cum_LAD_metrics <- get_cum_break(tree1, tree2)
+cum_LAD_metrics_list[[i]] <- cum_LAD_metrics
+}
+# Combine the individual data frames
+cummulative_LAD <- dplyr::bind_rows(cum_LAD_metrics_list)
+cummulative_LAD
+library(ggplot2)
+library(dplyr)
+LAD_profiles$treeID <- factor(LAD_profiles$treeID)
+cummulative_LAD$treeID <- factor(cummulative_LAD$treeID)
+# Generate cumulative LAD plots
+plots_trees_cumlad <- get_plots_cumm(LAD_profiles, cummulative_LAD)
+}
+plots_trees_cumlad [[1]]
+plots_trees_cumlad [[2]]
+plots_trees_cumlad [[3]]
+plots_trees_cumlad [[4]]
+plots_trees_cumlad [[5]]
+plots_trees_cumlad [[6]]
+plots_trees_cumlad [[7]]
+plots_trees_cumlad [[8]]
+LAD_profiles$treeID <- factor(LAD_profiles$treeID)
+trees_name1 <- as.character(effective_LAD$treeID)
+trees_name2 <- factor(unique(trees_name1))
+# Generate plots for fuels LAD metrics
+plots_trees_LAD <- get_plots_cbh_LAD(LAD_profiles, effective_LAD)
+trees_name1 <- as.character(effective_LAD$treeID)
+trees_name2 <- factor(unique(trees_name1))
+# Generate plots for fuels LAD metrics
+plots_trees_LAD <- get_plots_cbh_LAD(LAD_profiles, effective_LAD)
+plots_trees_LAD [[1]]
+plots_trees_LAD [[2]]
+plots_trees_LAD [[3]]
+plots_trees_LAD [[4]]
+remotes::install_github("r-universe/pkgconfig")
+remotes::install_github("r-universe/pkgconfig")
+library(pkgconfig)
+pkgconfig::set_config("RUNIVERSE_olgaviedma" = "olgaviedma")
+pkgconfig::set_config("R", Sys.getenv("R_HOME"))
+roxygen2::roxygenise()
+library(LadderFuelsR)
+install.packages("universe")
+library(universe)
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+library(LadderFuelsR)
+install.packages("universe", repos = "https://ropensci.r-universe.dev")
+universe::add("olgaviedma")
+install.packages("LadderFuelsR")
+install.packages("LadderFuelsR")
+library(pkgconfig)
+# Set R-Universe configurations
+config <- list(
+"RUNIVERSE_USERNAME" = "olgaviedma",
+"R" = Sys.getenv("R_HOME")
+)
+pkgconfig::set_config(config)
+uni_auth()
+# Install and load the required packages
+install.packages("pkgconfig")
+install.packages("r-universe")
+library(pkgconfig)
+library(r-universe)
+install.packages("pkgconfig")
+library(pkgconfig)
+# Install r-universe from GitHub
+remotes::install_github("r-universe/r-universe")
+# Install r-universe from GitHub
+remotes::install_github("r-universe/universe")
+config <- list(
+"RUNIVERSE_USERNAME" = "olgaviedma",
+"R" = Sys.getenv("R_HOME")
+)
+pkgconfig::set_config(config)
+config
+# Set R-Universe configurations
+pkgconfig::set_config("RUNIVERSE_USERNAME" = "olgaviedma", "R" = Sys.getenv("R_HOME"))
+# Authenticate with R-Universe
+uni_auth()
+install.packages("remotes")
+remotes::install_github("r-universe-org/cranscraper")
+library(LadderFuelsR)
+devtools::check()
+rhub::check_for_cran()
+install.packages("rhub")
+library(rhub)
+rhub::check_for_cran()
+devtools::check_win_devel()
+roxygen2::roxygenise()
+library(LadderFuelsR)
+devtools::check_win_devel()
+devtools::build_manual()
+rlang::last_trace()
+rlang::last_trace(drop = FALSE)
+evtools::build_manual(verbose = TRUE)
+devtools::build_manual(verbose = TRUE)
+devtools::document(clean = TRUE)
+library(LadderFuelsR)
+library(roxygen2)
+roxygenize()
+devtools::build_manual()
+rlang::last_trace()
+fun <- get_plots_gap_fbh
+help(fun, package = "LadderFuelsR", help_type = "pdf")
+rlang::last_trace()
+library(LadderFuelsR)
+exists("get_plots_gap_fbh")
+?get_plots_gap_fbh
+help("get_plots_gap_fbh", package = "LadderFuelsR", help_type = "pdf")
+devtools::build_manual("LadderFuelsR")
+rlang::last_trace()
+Roxygen: list(pdf = TRUE)
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+library(LadderFuelsR)
+devtools::build_manual("LadderFuelsR")
+devtools::build_manual("c:/LadderFuelsR")
+devtools::build_manual("c:/LadderFuelsR/LadderFuelsR")
+rlang::last_trace()
+devtools::document()
+library(LadderFuelsR)
+usethis::use_testthat()
+use_test()
+roxygen2::roxygenise()
+library(usethis)
+roxygen2::roxygenise()
+library(LadderFuelsR)
+devtools::document()
+dir.create("tests/testthat")
+list.files("tests/testthat")
+roxygen2::roxygenise()
+library(LadderFuelsR)
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+library(LadderFuelsR)
+roxygen2::roxygenise()
+library(LadderFuelsR)
+library(LadderFuelsR)
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+library(LadderFuelsR)
+roxygen2::roxygenise()
+roxygen2::roxygenise()
+library(LadderFuelsR)
+roxygen2::roxygenise()
+library(LadderFuelsR)
+roxygen2::roxygenise()
+library(LadderFuelsR)
+roxygen2::roxygenise()
+library(LadderFuelsR)
+roxygen2::roxygenise()
+library(LadderFuelsR)
+roxygen2::roxygenise()
